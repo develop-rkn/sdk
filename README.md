@@ -15,13 +15,13 @@ Faced backend.
 Swift Package Manager. In Xcode: **File → Add Package Dependencies…**
 
 ```
-https://github.com/<your-org>/faced-ios-sdk.git
+https://github.com/develop-rkn/sdk.git
 ```
 
 Or in `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/<your-org>/faced-ios-sdk.git", from: "0.1.0")
+.package(url: "https://github.com/develop-rkn/sdk.git", from: "0.1.0")
 ```
 
 ## Info.plist and entitlements
@@ -133,4 +133,4 @@ A complete working integration is in
 
 ## License
 
-See `LICENSE`.
+MIT — see [LICENSE](LICENSE).
