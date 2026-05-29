@@ -27,6 +27,7 @@ final class FacedFlowCoordinator {
         state.bind(sessionId: api.sessionId)
         state.stage = .loading
         do {
+            try api.validateToken()
             let flow = try await api.fetchFlow()
             state.flow = flow
             let status = try await api.fetchSession()

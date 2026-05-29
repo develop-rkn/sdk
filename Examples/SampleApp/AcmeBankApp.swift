@@ -67,14 +67,14 @@ struct OnboardingView: View {
 
     private func handle(_ result: FacedResult) {
         switch result {
-        case .approved(let id):
-            status = "Approved (\(id)). Awaiting webhook confirmation."
-        case .needsReview(_, let reason):
-            status = "Manual review: \(reason ?? "no reason")"
-        case .rejected(_, let reason):
-            status = "Rejected: \(reason ?? "no reason")"
-        case .canceled:
-            status = "Canceled."
+        case .approved(let sessionId):
+            status = "Approved (\(sessionId)). Awaiting webhook confirmation."
+        case .needsReview(let sessionId, let reason):
+            status = "Manual review for \(sessionId): \(reason ?? "no reason given")"
+        case .rejected(let sessionId, let reason):
+            status = "Rejected for \(sessionId): \(reason ?? "no reason given")"
+        case .canceled(let sessionId):
+            status = "Canceled \(sessionId.map { "(\($0))" } ?? "")"
         case .failed(let error):
             status = "Error: \(error.localizedDescription)"
         }

@@ -11,10 +11,10 @@ let package = Package(
         .library(name: "FacedKYC", targets: ["FacedKYC"])
     ],
     dependencies: [
-        // The passport NFC chip reader is an optional capability; integrators
-        // that don't need NFC can disable the `nfc` step in the server-side
-        // flow definition and the SDK will skip every NFC code path.
-        .package(url: "https://github.com/AndyQ/NFCPassportReader.git", branch: "main")
+        // Pinned to a tagged release so this package can itself be consumed
+        // as a versioned dependency — SPM forbids a stable-versioned package
+        // from depending on a branch-pinned one.
+        .package(url: "https://github.com/AndyQ/NFCPassportReader.git", from: "2.3.0")
     ],
     targets: [
         .target(

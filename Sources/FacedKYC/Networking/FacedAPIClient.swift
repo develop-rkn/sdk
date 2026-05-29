@@ -7,11 +7,13 @@ import UIKit
 struct FacedAPIClient {
     private let host: URL
     private let clientToken: String
+    private let tokenExpiresAt: Date?
     private let session: URLSession
 
     init(host: URL, clientToken: String, timeout: TimeInterval) {
         self.host = host
         self.clientToken = clientToken
+        self.tokenExpiresAt = Self.decodeTokenExpiry(clientToken)
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = timeout
         configuration.timeoutIntervalForResource = max(timeout, 60)
@@ -19,6 +21,15 @@ struct FacedAPIClient {
             "User-Agent": "FacedKYC-iOS/\(FacedSDK.version)"
         ]
         self.session = URLSession(configuration: configuration)
+    }
+
+    /// Throws if the token is structurally invalid or already expired. Cheap
+    /// to call — no network. The flow coordinator runs this once at startup
+    /// so integrators get a precise error before any modal UI appears.
+    func validateToken() throws {
+        guard !clientToken.isEmpty else { throw FacedError.clientTokenMalformed }
+        guard let expiresAt = tokenExpiresAt else { throw FacedError.clientTokenMalformed }
+        if Date() >= expiresAt { throw FacedError.clientTokenExpired(expiredAt: expiresAt) }
     }
 
     func fetchSession() async throws -> SessionStatusDTO {
@@ -86,7 +97,7 @@ struct FacedAPIClient {
 
     private func endpoint(_ path: String) throws -> URL {
         guard let url = URL(string: path, relativeTo: host) else {
-            throw FacedError.network("Could not build URL for \(path)")
+            throw FacedError.internalError("Could not build URL for \(path).")
         }
         return url
     }
@@ -194,30 +205,65 @@ struct FacedAPIClient {
         if let body {
             requestCopy.httpBody = body
         }
-        let (data, response) = try await session.data(for: requestCopy)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: requestCopy)
+        } catch let urlError as URLError {
+            throw FacedError.network(urlError)
+        } catch {
+            throw FacedError.internalError(error.localizedDescription)
+        }
 
         guard let http = response as? HTTPURLResponse else {
-            throw FacedError.network("Response was not an HTTP response")
+            throw FacedError.internalError("Response was not an HTTP response.")
         }
 
         if http.statusCode == 401 || http.statusCode == 403 {
-            throw FacedError.invalidClientToken
+            // If the token has a past `exp` claim, prefer the more specific
+            // error — saves integrators from hunting down stale tokens.
+            if let expiresAt = tokenExpiresAt, expiresAt <= Date() {
+                throw FacedError.clientTokenExpired(expiredAt: expiresAt)
+            }
+            throw FacedError.clientTokenUnauthorized
         }
 
         if !(200..<300).contains(http.statusCode) {
             let message = decodeErrorMessage(from: data) ?? "HTTP \(http.statusCode)"
-            throw FacedError.network(message)
+            throw FacedError.server(statusCode: http.statusCode, message: message)
         }
 
         do {
             let envelope = try JSONDecoder().decode(APIEnvelope<T>.self, from: data)
             guard envelope.success, let payload = envelope.data else {
-                throw FacedError.network(envelope.error?.message ?? "Backend returned an error envelope")
+                throw FacedError.server(
+                    statusCode: http.statusCode,
+                    message: envelope.error?.message ?? "Backend returned an error envelope."
+                )
             }
             return payload
         } catch let decodingError {
-            throw FacedError.network("Response decode failed: \(decodingError)")
+            throw FacedError.internalError("Response decode failed: \(decodingError)")
         }
+    }
+
+    private static func decodeTokenExpiry(_ token: String) -> Date? {
+        let stripped = token.hasPrefix("ct_") ? String(token.dropFirst(3)) : token
+        guard let payloadPart = stripped.split(separator: ".").first else { return nil }
+        let padded = padBase64URL(String(payloadPart))
+        guard let data = Data(base64Encoded: padded) else { return nil }
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        guard let exp = object["exp"] as? TimeInterval else { return nil }
+        return Date(timeIntervalSince1970: exp)
+    }
+
+    private static func padBase64URL(_ value: String) -> String {
+        var s = value
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        while s.count % 4 != 0 { s += "=" }
+        return s
     }
 
     private func decodeErrorMessage(from data: Data) -> String? {
