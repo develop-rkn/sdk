@@ -96,10 +96,23 @@ struct FacedAPIClient {
     }
 
     private func endpoint(_ path: String) throws -> URL {
-        guard let url = URL(string: path, relativeTo: host) else {
+        guard let url = Self.composeURL(host: host, path: path) else {
             throw FacedError.internalError("Could not build URL for \(path).")
         }
         return url
+    }
+
+    /// Compose `host + path` such that any proxy prefix baked into `host` is
+    /// preserved (e.g. `https://kyc-host/biometrics`). We deliberately do not
+    /// use `URL(string:relativeTo:)` because the relative-URL resolver treats
+    /// an absolute path (one starting with `/`) as replacing the host's entire
+    /// path component — which would silently drop the prefix on every call
+    /// and break KYC's `/biometrics/*` reverse proxy.
+    static func composeURL(host: URL, path: String) -> URL? {
+        let base = host.absoluteString
+        let trimmedBase = base.hasSuffix("/") ? String(base.dropLast()) : base
+        let normalizedPath = path.hasPrefix("/") ? path : "/\(path)"
+        return URL(string: trimmedBase + normalizedPath)
     }
 
     private func makeRequest(url: URL, method: String) -> URLRequest {
