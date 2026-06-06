@@ -1,10 +1,10 @@
 import XCTest
-@testable import FacedKYC
+@testable import RKNCheckKYC
 
-final class FacedKYCTests: XCTestCase {
+final class RKNCheckKYCTests: XCTestCase {
 
     func testSDKVersionIsExposed() {
-        XCTAssertFalse(FacedSDK.version.isEmpty)
+        XCTAssertFalse(RKNCheckSDK.version.isEmpty)
     }
 
     func testIsConfiguredReflectsConfigure() {
@@ -12,15 +12,15 @@ final class FacedKYCTests: XCTestCase {
         guard let host = URL(string: "https://kyc.test.invalid") else {
             return XCTFail("Could not build host URL")
         }
-        FacedSDK.configure(FacedConfiguration(host: host))
-        XCTAssertTrue(FacedSDK.isConfigured)
-        XCTAssertEqual(FacedSDK.currentConfiguration?.host, host)
+        RKNCheckSDK.configure(RKNCheckConfiguration(host: host))
+        XCTAssertTrue(RKNCheckSDK.isConfigured)
+        XCTAssertEqual(RKNCheckSDK.currentConfiguration?.host, host)
     }
 
-    func testFacedResultExposesSessionId() {
-        XCTAssertEqual(FacedResult.approved(sessionId: "abc").sessionId, "abc")
-        XCTAssertEqual(FacedResult.rejected(sessionId: "x", reason: "no_match").sessionId, "x")
-        XCTAssertNil(FacedResult.failed(error: .notConfigured).sessionId)
+    func testRKNCheckResultExposesSessionId() {
+        XCTAssertEqual(RKNCheckResult.approved(sessionId: "abc").sessionId, "abc")
+        XCTAssertEqual(RKNCheckResult.rejected(sessionId: "x", reason: "no_match").sessionId, "x")
+        XCTAssertNil(RKNCheckResult.failed(error: .notConfigured).sessionId)
     }
 
     // Regression test for the host-path-prefix bug discovered during the KYC
@@ -30,25 +30,25 @@ final class FacedKYCTests: XCTestCase {
     // stripped it because absolute paths replace the host's path.
     func testComposeURLPreservesHostPathPrefix() throws {
         let host = try XCTUnwrap(URL(string: "https://kyc-host.example.com/biometrics"))
-        let url = try XCTUnwrap(FacedAPIClient.composeURL(host: host, path: "/v1/sessions/abc/document"))
+        let url = try XCTUnwrap(RKNCheckAPIClient.composeURL(host: host, path: "/v1/sessions/abc/document"))
         XCTAssertEqual(url.absoluteString, "https://kyc-host.example.com/biometrics/v1/sessions/abc/document")
     }
 
     func testComposeURLHandlesHostTrailingSlash() throws {
         let host = try XCTUnwrap(URL(string: "https://kyc-host.example.com/biometrics/"))
-        let url = try XCTUnwrap(FacedAPIClient.composeURL(host: host, path: "/v1/sessions/abc"))
+        let url = try XCTUnwrap(RKNCheckAPIClient.composeURL(host: host, path: "/v1/sessions/abc"))
         XCTAssertEqual(url.absoluteString, "https://kyc-host.example.com/biometrics/v1/sessions/abc")
     }
 
     func testComposeURLHandlesNoPathPrefix() throws {
         let host = try XCTUnwrap(URL(string: "https://kyc-host.example.com"))
-        let url = try XCTUnwrap(FacedAPIClient.composeURL(host: host, path: "/v1/sessions/abc"))
+        let url = try XCTUnwrap(RKNCheckAPIClient.composeURL(host: host, path: "/v1/sessions/abc"))
         XCTAssertEqual(url.absoluteString, "https://kyc-host.example.com/v1/sessions/abc")
     }
 
     func testComposeURLHandlesPathWithoutLeadingSlash() throws {
         let host = try XCTUnwrap(URL(string: "https://kyc-host.example.com/biometrics"))
-        let url = try XCTUnwrap(FacedAPIClient.composeURL(host: host, path: "v1/sessions/abc"))
+        let url = try XCTUnwrap(RKNCheckAPIClient.composeURL(host: host, path: "v1/sessions/abc"))
         XCTAssertEqual(url.absoluteString, "https://kyc-host.example.com/biometrics/v1/sessions/abc")
     }
 }

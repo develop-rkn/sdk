@@ -2,14 +2,14 @@ import SwiftUI
 import UIKit
 
 /// Root SwiftUI view embedded inside the modal presentation. Drives the
-/// orchestration through `FacedFlowCoordinator` and routes UI off
-/// `FacedFlowState.stage`.
-struct FacedFlowContainerView: View {
+/// orchestration through `RKNCheckFlowCoordinator` and routes UI off
+/// `RKNCheckFlowState.stage`.
+struct RKNCheckFlowContainerView: View {
     let clientToken: String
-    let onFinish: (FacedResult) -> Void
+    let onFinish: (RKNCheckResult) -> Void
 
-    @StateObject private var state = FacedFlowState()
-    @State private var coordinator: FacedFlowCoordinator?
+    @StateObject private var state = RKNCheckFlowState()
+    @State private var coordinator: RKNCheckFlowCoordinator?
     @State private var didStart = false
     @State private var showDocumentCamera = false
     @State private var showMRZScanner = false
@@ -18,8 +18,8 @@ struct FacedFlowContainerView: View {
     @State private var nfcDateOfBirth: String = ""
     @State private var nfcExpiryDate: String = ""
 
-    private var theme: FacedTheme {
-        FacedSDK.currentConfiguration?.theme ?? .default
+    private var theme: RKNCheckTheme {
+        RKNCheckSDK.currentConfiguration?.theme ?? .default
     }
 
     var body: some View {
@@ -46,11 +46,11 @@ struct FacedFlowContainerView: View {
         .task {
             guard !didStart else { return }
             didStart = true
-            guard let api = FacedRuntime.shared.makeAPIClient(clientToken: clientToken) else {
+            guard let api = RKNCheckRuntime.shared.makeAPIClient(clientToken: clientToken) else {
                 onFinish(.failed(error: .notConfigured))
                 return
             }
-            let coordinator = FacedFlowCoordinator(api: api, state: state, onFinish: onFinish)
+            let coordinator = RKNCheckFlowCoordinator(api: api, state: state, onFinish: onFinish)
             self.coordinator = coordinator
             await coordinator.start()
         }
@@ -106,13 +106,13 @@ struct FacedFlowContainerView: View {
         }
     }
 
-    private var currentSkippableKind: FacedFlowState.FlowKind? {
+    private var currentSkippableKind: RKNCheckFlowState.FlowKind? {
         guard let stage = currentStageKind, let flow = state.flow else { return nil }
         let step = flow.steps.first(where: { $0.kind == stage.rawValue })
         return step?.skippable == true ? stage : nil
     }
 
-    private var currentStageKind: FacedFlowState.FlowKind? {
+    private var currentStageKind: RKNCheckFlowState.FlowKind? {
         if case .prompt(let kind) = state.stage { return kind }
         return nil
     }
@@ -145,7 +145,7 @@ struct FacedFlowContainerView: View {
         .background(theme.backgroundColor.ignoresSafeArea())
     }
 
-    private func stageError(_ error: FacedError) -> some View {
+    private func stageError(_ error: RKNCheckError) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 48))
@@ -168,7 +168,7 @@ struct FacedFlowContainerView: View {
     }
 
     @ViewBuilder
-    private func stagePrompt(_ kind: FacedFlowState.FlowKind) -> some View {
+    private func stagePrompt(_ kind: RKNCheckFlowState.FlowKind) -> some View {
         switch kind {
         case .document:
             promptCard(
@@ -302,7 +302,7 @@ struct FacedFlowContainerView: View {
     }
 }
 
-private extension FacedFlowState.FlowKind {
+private extension RKNCheckFlowState.FlowKind {
     var label: String {
         switch self {
         case .document: return "document"

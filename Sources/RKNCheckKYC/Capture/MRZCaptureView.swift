@@ -19,7 +19,7 @@ final class MRZCaptureViewController: UIViewController, AVCaptureVideoDataOutput
     private let onCancel: () -> Void
     private let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
-    private let captureQueue = DispatchQueue(label: "faced.mrz.capture")
+    private let captureQueue = DispatchQueue(label: "rkn-check.mrz.capture")
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var lastAnalysisTime = CACurrentMediaTime()
     private var bestMRZText: String?

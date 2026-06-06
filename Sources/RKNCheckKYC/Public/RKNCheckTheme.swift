@@ -3,7 +3,7 @@ import UIKit
 
 /// Lightweight theming hook so a fintech can adopt their brand colors without
 /// touching the SDK source.
-public struct FacedTheme {
+public struct RKNCheckTheme {
     public let accentColor: Color
     public let backgroundColor: Color
     public let errorColor: Color
@@ -21,5 +21,5 @@ public struct FacedTheme {
         self.successColor = successColor
     }
 
-    public static let `default`: FacedTheme = FacedTheme()
+    public static let `default`: RKNCheckTheme = RKNCheckTheme()
 }

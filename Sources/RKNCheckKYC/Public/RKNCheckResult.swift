@@ -3,14 +3,14 @@ import Foundation
 /// Terminal outcome the SDK reports back to the host app.
 ///
 /// Treat `.approved` as informational only — the **authoritative** verdict
-/// always comes from the webhook that the Faced backend POSTs to your server
+/// always comes from the webhook that the RKN-Check backend POSTs to your server
 /// at the end of the session.
-public enum FacedResult: Equatable {
+public enum RKNCheckResult: Equatable {
     case approved(sessionId: String)
     case needsReview(sessionId: String, reason: String?)
     case rejected(sessionId: String, reason: String?)
     case canceled(sessionId: String?)
-    case failed(error: FacedError)
+    case failed(error: RKNCheckError)
 
     public var sessionId: String? {
         switch self {
@@ -34,11 +34,11 @@ public enum FacedResult: Equatable {
 /// `.network`, inspect `URLError.code` (e.g. `.notConnectedToInternet`,
 /// `.cannotConnectToHost`, `.appTransportSecurityRequiresSecureConnection`)
 /// to give the user actionable guidance.
-public enum FacedError: Error, Equatable {
-    /// `FacedSDK.configure(_:)` was never called.
+public enum RKNCheckError: Error, Equatable {
+    /// `RKNCheckSDK.configure(_:)` was never called.
     case notConfigured
 
-    /// Client token is not a parseable Faced token.
+    /// Client token is not a parseable RKN-Check token.
     case clientTokenMalformed
 
     /// Client token's signed `exp` claim has already passed.
@@ -67,7 +67,7 @@ public enum FacedError: Error, Equatable {
     public var localizedDescription: String {
         switch self {
         case .notConfigured:
-            return "Faced SDK has not been configured. Call FacedSDK.configure(_:) at launch."
+            return "RKN-Check SDK has not been configured. Call RKNCheckSDK.configure(_:) at launch."
         case .clientTokenMalformed:
             return "The client token is malformed."
         case .clientTokenExpired(let expiredAt):
@@ -90,17 +90,17 @@ public enum FacedError: Error, Equatable {
     private static func describe(_ urlError: URLError) -> String {
         switch urlError.code {
         case .notConnectedToInternet:
-            return "The phone reports no internet connectivity. If your Faced host is on a private IP (10.x / 172.16-31.x / 192.168.x), make sure the app has NSLocalNetworkUsageDescription in Info.plist and that local-network permission was granted."
+            return "The phone reports no internet connectivity. If your RKN-Check host is on a private IP (10.x / 172.16-31.x / 192.168.x), make sure the app has NSLocalNetworkUsageDescription in Info.plist and that local-network permission was granted."
         case .cannotConnectToHost:
-            return "Could not reach the Faced host. Check the URL and that the backend is running."
+            return "Could not reach the RKN-Check host. Check the URL and that the backend is running."
         case .timedOut:
-            return "The request to the Faced host timed out."
+            return "The request to the RKN-Check host timed out."
         case .appTransportSecurityRequiresSecureConnection:
             return "App Transport Security blocked the request. If your host is HTTP, add an NSAppTransportSecurity exception in Info.plist."
         case .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate, .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot:
-            return "TLS handshake with the Faced host failed: \(urlError.localizedDescription)"
+            return "TLS handshake with the RKN-Check host failed: \(urlError.localizedDescription)"
         case .cannotFindHost:
-            return "DNS lookup failed for the Faced host. Check the URL."
+            return "DNS lookup failed for the RKN-Check host. Check the URL."
         default:
             return "Network error: \(urlError.localizedDescription) (URLError.code \(urlError.code.rawValue))"
         }

@@ -2,13 +2,13 @@
 import PackageDescription
 
 let package = Package(
-    name: "FacedKYC",
+    name: "RKNCheckKYC",
     defaultLocalization: "en",
     platforms: [
         .iOS(.v16)
     ],
     products: [
-        .library(name: "FacedKYC", targets: ["FacedKYC"])
+        .library(name: "RKNCheckKYC", targets: ["RKNCheckKYC"])
     ],
     dependencies: [
         // Pinned to a tagged release so this package can itself be consumed
@@ -18,16 +18,16 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "FacedKYC",
+            name: "RKNCheckKYC",
             dependencies: [
                 .product(name: "NFCPassportReader", package: "NFCPassportReader")
             ],
-            path: "Sources/FacedKYC"
+            path: "Sources/RKNCheckKYC"
         ),
         .testTarget(
-            name: "FacedKYCTests",
-            dependencies: ["FacedKYC"],
-            path: "Tests/FacedKYCTests"
+            name: "RKNCheckKYCTests",
+            dependencies: ["RKNCheckKYC"],
+            path: "Tests/RKNCheckKYCTests"
         )
     ]
 )
