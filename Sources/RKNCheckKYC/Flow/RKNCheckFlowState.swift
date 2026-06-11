@@ -4,14 +4,14 @@ import UIKit
 /// Single source of truth for the flow's progress, shared between the
 /// orchestrator view and the capture sheets it presents.
 @MainActor
-final class FacedFlowState: ObservableObject {
+final class RKNCheckFlowState: ObservableObject {
     enum Stage: Equatable {
         case loading
         case prompt(FlowKind)
         case capturing(FlowKind)
         case processing(String)
-        case finished(FacedResult)
-        case error(FacedError)
+        case finished(RKNCheckResult)
+        case error(RKNCheckError)
     }
 
     enum FlowKind: String {

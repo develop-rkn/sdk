@@ -1,13 +1,13 @@
 import SwiftUI
-import FacedKYC
+import RKNCheckKYC
 
 @main
 struct AcmeBankApp: App {
     init() {
-        FacedSDK.configure(
-            FacedConfiguration(
-                host: URL(string: "https://kyc.acme-bank.com")!,
-                theme: FacedTheme(accentColor: .blue)
+        RKNCheckSDK.configure(
+            RKNCheckConfiguration(
+                host: URL(string: "https://api.your-rkn-host.com/biometrics")!,
+                theme: RKNCheckTheme(accentColor: .blue)
             )
         )
     }
@@ -45,7 +45,7 @@ struct OnboardingView: View {
             }
         }
         .padding()
-        .facedVerification(
+        .rknCheckVerification(
             isPresented: $showVerification,
             clientToken: clientToken ?? "",
             onResult: handle
@@ -65,7 +65,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func handle(_ result: FacedResult) {
+    private func handle(_ result: RKNCheckResult) {
         switch result {
         case .approved(let sessionId):
             status = "Approved (\(sessionId)). Awaiting webhook confirmation."
@@ -81,7 +81,8 @@ struct OnboardingView: View {
     }
 
     // Replace with a real call to YOUR backend. Your backend calls
-    // POST /v1/sessions on the Faced deployment and returns the clientToken.
+    // POST /api/v1/verification-sessions on the RKN platform (using your KYC
+    // API key) and returns the `clientToken` field from the response.
     private func fetchClientToken() async throws -> String {
         struct Response: Decodable { let clientToken: String }
         var request = URLRequest(url: URL(string: "https://api.acme-bank.com/onboarding/start")!)

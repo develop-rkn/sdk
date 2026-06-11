@@ -5,21 +5,21 @@ import UIKit
 ///
 /// SwiftUI integration:
 /// ```swift
-/// .facedVerification(isPresented: $showKYC, clientToken: token) { result in
+/// .rknCheckVerification(isPresented: $showKYC, clientToken: token) { result in
 ///     ...
 /// }
 /// ```
 ///
 /// UIKit integration:
 /// ```swift
-/// FacedVerification(clientToken: token) { result in ... }
+/// RKNCheckVerification(clientToken: token) { result in ... }
 ///     .present(from: self)
 /// ```
-public struct FacedVerification {
+public struct RKNCheckVerification {
     public let clientToken: String
-    public let onResult: (FacedResult) -> Void
+    public let onResult: (RKNCheckResult) -> Void
 
-    public init(clientToken: String, onResult: @escaping (FacedResult) -> Void) {
+    public init(clientToken: String, onResult: @escaping (RKNCheckResult) -> Void) {
         self.clientToken = clientToken
         self.onResult = onResult
     }
@@ -29,12 +29,12 @@ public struct FacedVerification {
     /// Returns immediately. The completion handler passed to `init` is
     /// invoked when the flow finishes (or the user cancels it).
     public func present(from presenter: UIViewController, animated: Bool = true) {
-        guard FacedSDK.isConfigured else {
+        guard RKNCheckSDK.isConfigured else {
             onResult(.failed(error: .notConfigured))
             return
         }
 
-        let host = FacedFlowHostingController(clientToken: clientToken) { result in
+        let host = RKNCheckFlowHostingController(clientToken: clientToken) { result in
             presenter.dismiss(animated: animated) {
                 onResult(result)
             }
@@ -45,31 +45,42 @@ public struct FacedVerification {
 }
 
 public extension View {
-    /// Presents the Faced verification flow when `isPresented` becomes `true`.
-    func facedVerification(
+    /// Presents the RKN-Check verification flow when `isPresented` becomes `true`.
+    func rknCheckVerification(
         isPresented: Binding<Bool>,
         clientToken: String,
-        onResult: @escaping (FacedResult) -> Void
+        onResult: @escaping (RKNCheckResult) -> Void
     ) -> some View {
         modifier(
-            FacedVerificationPresenter(
+            RKNCheckVerificationPresenter(
                 isPresented: isPresented,
                 clientToken: clientToken,
                 onResult: onResult
             )
         )
     }
+
+    /// Deprecated. Use ``rknCheckVerification(isPresented:clientToken:onResult:)``.
+    /// Removed in v0.4.0.
+    @available(*, deprecated, renamed: "rknCheckVerification(isPresented:clientToken:onResult:)", message: "FacedKYC was rebranded to RKN-Check. Use `.rknCheckVerification(...)`. This shim is removed in v0.4.0.")
+    func facedVerification(
+        isPresented: Binding<Bool>,
+        clientToken: String,
+        onResult: @escaping (RKNCheckResult) -> Void
+    ) -> some View {
+        rknCheckVerification(isPresented: isPresented, clientToken: clientToken, onResult: onResult)
+    }
 }
 
-private struct FacedVerificationPresenter: ViewModifier {
+private struct RKNCheckVerificationPresenter: ViewModifier {
     @Binding var isPresented: Bool
     let clientToken: String
-    let onResult: (FacedResult) -> Void
+    let onResult: (RKNCheckResult) -> Void
 
     func body(content: Content) -> some View {
         content
             .fullScreenCover(isPresented: $isPresented) {
-                FacedFlowContainerView(clientToken: clientToken) { result in
+                RKNCheckFlowContainerView(clientToken: clientToken) { result in
                     isPresented = false
                     onResult(result)
                 }

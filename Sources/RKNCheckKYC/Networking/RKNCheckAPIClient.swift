@@ -1,10 +1,10 @@
 import Foundation
 import UIKit
 
-/// Internal HTTP client that talks to the Faced `/v1/...` endpoints using a
+/// Internal HTTP client that talks to the RKN-Check `/v1/...` endpoints using a
 /// client-token-only credential. The fintech's secret key NEVER lives on the
 /// device; the token is short-lived and scoped to a single session.
-struct FacedAPIClient {
+struct RKNCheckAPIClient {
     private let host: URL
     private let clientToken: String
     private let tokenExpiresAt: Date?
@@ -18,7 +18,7 @@ struct FacedAPIClient {
         configuration.timeoutIntervalForRequest = timeout
         configuration.timeoutIntervalForResource = max(timeout, 60)
         configuration.httpAdditionalHeaders = [
-            "User-Agent": "FacedKYC-iOS/\(FacedSDK.version)"
+            "User-Agent": "RKNCheckKYC-iOS/\(RKNCheckSDK.version)"
         ]
         self.session = URLSession(configuration: configuration)
     }
@@ -27,9 +27,9 @@ struct FacedAPIClient {
     /// to call — no network. The flow coordinator runs this once at startup
     /// so integrators get a precise error before any modal UI appears.
     func validateToken() throws {
-        guard !clientToken.isEmpty else { throw FacedError.clientTokenMalformed }
-        guard let expiresAt = tokenExpiresAt else { throw FacedError.clientTokenMalformed }
-        if Date() >= expiresAt { throw FacedError.clientTokenExpired(expiredAt: expiresAt) }
+        guard !clientToken.isEmpty else { throw RKNCheckError.clientTokenMalformed }
+        guard let expiresAt = tokenExpiresAt else { throw RKNCheckError.clientTokenMalformed }
+        if Date() >= expiresAt { throw RKNCheckError.clientTokenExpired(expiredAt: expiresAt) }
     }
 
     func fetchSession() async throws -> SessionStatusDTO {
@@ -77,7 +77,7 @@ struct FacedAPIClient {
         let body = try JSONSerialization.data(
             withJSONObject: [
                 "clientStatus": clientStatus,
-                "device": ["platform": "ios", "sdkVersion": FacedSDK.version]
+                "device": ["platform": "ios", "sdkVersion": RKNCheckSDK.version]
             ],
             options: [.sortedKeys]
         )
@@ -97,7 +97,7 @@ struct FacedAPIClient {
 
     private func endpoint(_ path: String) throws -> URL {
         guard let url = Self.composeURL(host: host, path: path) else {
-            throw FacedError.internalError("Could not build URL for \(path).")
+            throw RKNCheckError.internalError("Could not build URL for \(path).")
         }
         return url
     }
@@ -127,7 +127,7 @@ struct FacedAPIClient {
         image: Data,
         imageField: String
     ) -> (URLRequest, Data) {
-        let boundary = "faced-\(UUID().uuidString)"
+        let boundary = "rkn-check-\(UUID().uuidString)"
         var request = makeRequest(url: url, method: "POST")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
@@ -142,7 +142,7 @@ struct FacedAPIClient {
         image: Data,
         liveness: LivenessSubmission
     ) -> (URLRequest, Data) {
-        let boundary = "faced-\(UUID().uuidString)"
+        let boundary = "rkn-check-\(UUID().uuidString)"
         var request = makeRequest(url: url, method: "POST")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
@@ -161,7 +161,7 @@ struct FacedAPIClient {
         url: URL,
         submission: NFCSubmission
     ) -> (URLRequest, Data) {
-        let boundary = "faced-\(UUID().uuidString)"
+        let boundary = "rkn-check-\(UUID().uuidString)"
         var request = makeRequest(url: url, method: "POST")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
@@ -224,40 +224,40 @@ struct FacedAPIClient {
         do {
             (data, response) = try await session.data(for: requestCopy)
         } catch let urlError as URLError {
-            throw FacedError.network(urlError)
+            throw RKNCheckError.network(urlError)
         } catch {
-            throw FacedError.internalError(error.localizedDescription)
+            throw RKNCheckError.internalError(error.localizedDescription)
         }
 
         guard let http = response as? HTTPURLResponse else {
-            throw FacedError.internalError("Response was not an HTTP response.")
+            throw RKNCheckError.internalError("Response was not an HTTP response.")
         }
 
         if http.statusCode == 401 || http.statusCode == 403 {
             // If the token has a past `exp` claim, prefer the more specific
             // error — saves integrators from hunting down stale tokens.
             if let expiresAt = tokenExpiresAt, expiresAt <= Date() {
-                throw FacedError.clientTokenExpired(expiredAt: expiresAt)
+                throw RKNCheckError.clientTokenExpired(expiredAt: expiresAt)
             }
-            throw FacedError.clientTokenUnauthorized
+            throw RKNCheckError.clientTokenUnauthorized
         }
 
         if !(200..<300).contains(http.statusCode) {
             let message = decodeErrorMessage(from: data) ?? "HTTP \(http.statusCode)"
-            throw FacedError.server(statusCode: http.statusCode, message: message)
+            throw RKNCheckError.server(statusCode: http.statusCode, message: message)
         }
 
         do {
             let envelope = try JSONDecoder().decode(APIEnvelope<T>.self, from: data)
             guard envelope.success, let payload = envelope.data else {
-                throw FacedError.server(
+                throw RKNCheckError.server(
                     statusCode: http.statusCode,
                     message: envelope.error?.message ?? "Backend returned an error envelope."
                 )
             }
             return payload
         } catch let decodingError {
-            throw FacedError.internalError("Response decode failed: \(decodingError)")
+            throw RKNCheckError.internalError("Response decode failed: \(decodingError)")
         }
     }
 

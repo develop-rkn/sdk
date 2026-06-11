@@ -69,7 +69,7 @@ final class ActiveLivenessViewController: UIViewController, AVCaptureVideoDataOu
     private let onCancel: () -> Void
     private let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
-    private let captureQueue = DispatchQueue(label: "faced.active-liveness.capture")
+    private let captureQueue = DispatchQueue(label: "rkn-check.active-liveness.capture")
     private let visionSequence = VNSequenceRequestHandler()
     private let ciContext = CIContext()
     private let challenges = LivenessChallenge.randomSequence()

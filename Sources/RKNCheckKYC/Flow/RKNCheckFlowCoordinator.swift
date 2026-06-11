@@ -2,22 +2,22 @@ import Foundation
 import UIKit
 
 /// Drives the verification flow according to the server-supplied
-/// `FlowDefinitionDTO`. Owned by `FacedFlowContainerView`; never visible to
+/// `FlowDefinitionDTO`. Owned by `RKNCheckFlowContainerView`; never visible to
 /// integrators.
 @MainActor
-final class FacedFlowCoordinator {
-    private let api: FacedAPIClient
-    private let state: FacedFlowState
+final class RKNCheckFlowCoordinator {
+    private let api: RKNCheckAPIClient
+    private let state: RKNCheckFlowState
     private let nfcReader = PassportNFCReader()
-    private let onFinish: (FacedResult) -> Void
+    private let onFinish: (RKNCheckResult) -> Void
 
     private var stepIndex = 0
-    private var skippedSteps: Set<FacedFlowState.FlowKind> = []
+    private var skippedSteps: Set<RKNCheckFlowState.FlowKind> = []
 
     private static let maxDocumentJPEGBytes = 10 * 1024 * 1024
     private static let maxSelfieJPEGBytes = 8 * 1024 * 1024
 
-    init(api: FacedAPIClient, state: FacedFlowState, onFinish: @escaping (FacedResult) -> Void) {
+    init(api: RKNCheckAPIClient, state: RKNCheckFlowState, onFinish: @escaping (RKNCheckResult) -> Void) {
         self.api = api
         self.state = state
         self.onFinish = onFinish
@@ -33,7 +33,7 @@ final class FacedFlowCoordinator {
             let status = try await api.fetchSession()
             state.latestStatus = status
             advanceToNextStep()
-        } catch let error as FacedError {
+        } catch let error as RKNCheckError {
             state.stage = .error(error)
         } catch {
             state.stage = .error(.internalError(error.localizedDescription))
@@ -82,9 +82,9 @@ final class FacedFlowCoordinator {
 
     // MARK: - Step routing
 
-    private var currentKind: FacedFlowState.FlowKind? {
+    private var currentKind: RKNCheckFlowState.FlowKind? {
         guard let steps = state.flow?.steps, stepIndex < steps.count else { return nil }
-        return FacedFlowState.FlowKind(rawValue: steps[stepIndex].kind)
+        return RKNCheckFlowState.FlowKind(rawValue: steps[stepIndex].kind)
     }
 
     private var currentStep: FlowStepDTO? {
@@ -100,7 +100,7 @@ final class FacedFlowCoordinator {
 
         while stepIndex < steps.count {
             let step = steps[stepIndex]
-            guard let kind = FacedFlowState.FlowKind(rawValue: step.kind) else {
+            guard let kind = RKNCheckFlowState.FlowKind(rawValue: step.kind) else {
                 stepIndex += 1
                 continue
             }
@@ -115,7 +115,7 @@ final class FacedFlowCoordinator {
         finalizeFlow()
     }
 
-    private func shouldSkipForState(_ kind: FacedFlowState.FlowKind, step: FlowStepDTO) -> Bool {
+    private func shouldSkipForState(_ kind: RKNCheckFlowState.FlowKind, step: FlowStepDTO) -> Bool {
         switch kind {
         case .nfc:
             // The server tells us per-passport whether NFC is required; skip
@@ -149,7 +149,7 @@ final class FacedFlowCoordinator {
             state.latestStatus = status
             stepIndex += 1
             advanceToNextStep()
-        } catch let error as FacedError {
+        } catch let error as RKNCheckError {
             state.stage = .error(error)
         } catch {
             state.stage = .error(.internalError(error.localizedDescription))
@@ -172,7 +172,7 @@ final class FacedFlowCoordinator {
             }
             stepIndex += 1
             advanceToNextStep()
-        } catch let error as FacedError {
+        } catch let error as RKNCheckError {
             state.stage = .error(error)
         } catch {
             state.stage = .error(.internalError(error.localizedDescription))
@@ -191,7 +191,7 @@ final class FacedFlowCoordinator {
             state.latestStatus = status
             stepIndex += 1
             advanceToNextStep()
-        } catch let error as FacedError {
+        } catch let error as RKNCheckError {
             state.stage = .error(error)
         } catch let nfcError as PassportNFCReadError {
             state.stage = .error(.internalError(nfcError.errorDescription ?? "NFC read failed"))
@@ -212,7 +212,7 @@ final class FacedFlowCoordinator {
             state.latestStatus = status
             stepIndex += 1
             advanceToNextStep()
-        } catch let error as FacedError {
+        } catch let error as RKNCheckError {
             state.stage = .error(error)
         } catch {
             state.stage = .error(.internalError(error.localizedDescription))
@@ -241,7 +241,7 @@ final class FacedFlowCoordinator {
         }
     }
 
-    private func mapResult(_ status: SessionStatusDTO) -> FacedResult {
+    private func mapResult(_ status: SessionStatusDTO) -> RKNCheckResult {
         let id = status.sessionId ?? state.sessionId
         switch (status.status ?? "").lowercased() {
         case "verified", "approved":
