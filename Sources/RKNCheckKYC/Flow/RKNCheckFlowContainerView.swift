@@ -171,9 +171,14 @@ struct RKNCheckFlowContainerView: View {
     private func stagePrompt(_ kind: RKNCheckFlowState.FlowKind) -> some View {
         switch kind {
         case .document:
+            // The `document` step accepts ANY identity document the tenant
+            // allows — national ID card, residency permit or passport. Naming
+            // one of them told a Qatari ID holder to produce a passport they
+            // may not have, and made the step look mandatory-by-passport even
+            // where the MRZ/NFC steps are switched off server-side.
             promptCard(
-                title: "Scan your passport",
-                subtitle: "Place your passport's data page flat under good light. We'll detect the photo automatically.",
+                title: "Scan your ID document",
+                subtitle: "Place your ID card or passport flat under good light. We'll detect the photo automatically.",
                 buttonTitle: "Open camera",
                 systemImage: "doc.viewfinder",
                 action: { showDocumentCamera = true }
