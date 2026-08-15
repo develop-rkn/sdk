@@ -40,7 +40,7 @@ public enum RKNCheckSDK {
     }
 
     /// SDK version string included in user-agent headers.
-    public static let version: String = "0.3.0"
+    public static let version: String = "0.3.2"
 
     /// Returns `true` once `configure(_:)` has been called.
     public static var isConfigured: Bool {
