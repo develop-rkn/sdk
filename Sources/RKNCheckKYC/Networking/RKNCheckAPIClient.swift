@@ -8,12 +8,14 @@ struct RKNCheckAPIClient {
     private let host: URL
     private let clientToken: String
     private let tokenExpiresAt: Date?
+    private let licenseKey: String?
     private let session: URLSession
 
-    init(host: URL, clientToken: String, timeout: TimeInterval) {
+    init(host: URL, clientToken: String, timeout: TimeInterval, licenseKey: String? = nil) {
         self.host = host
         self.clientToken = clientToken
         self.tokenExpiresAt = Self.decodeTokenExpiry(clientToken)
+        self.licenseKey = licenseKey
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = timeout
         configuration.timeoutIntervalForResource = max(timeout, 60)
@@ -119,6 +121,12 @@ struct RKNCheckAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(clientToken)", forHTTPHeaderField: "Authorization")
+        // The client's RKN licence rides along on every call; the backend
+        // verifies the signature and refuses modules the licence doesn't
+        // cover (belt-and-braces with the tenant's stored licence).
+        if let licenseKey, !licenseKey.isEmpty {
+            request.setValue(licenseKey, forHTTPHeaderField: "X-RKN-License")
+        }
         return request
     }
 

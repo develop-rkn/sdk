@@ -24,6 +24,11 @@ final class RKNCheckRuntime {
 
     func makeAPIClient(clientToken: String) -> RKNCheckAPIClient? {
         guard let configuration = self.configuration else { return nil }
-        return RKNCheckAPIClient(host: configuration.host, clientToken: clientToken, timeout: configuration.networkTimeoutSeconds)
+        return RKNCheckAPIClient(
+            host: configuration.host,
+            clientToken: clientToken,
+            timeout: configuration.networkTimeoutSeconds,
+            licenseKey: configuration.licenseKey
+        )
     }
 }

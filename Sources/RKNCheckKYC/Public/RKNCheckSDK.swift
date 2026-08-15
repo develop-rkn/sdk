@@ -1,5 +1,23 @@
 import Foundation
 
+/// Modules a client's RKN licence covers, decoded from the licence key set in
+/// `RKNCheckConfiguration.licenseKey`. Display-level only: the SDK decodes the
+/// key's payload so the app can hide unlicensed flows up front, but signature
+/// verification and enforcement happen on the backend — a tampered key just
+/// gets its calls refused server-side.
+public struct RKNCheckEntitlements {
+    /// The client name the licence was issued to.
+    public let client: String
+    /// Module identifiers the licence covers, e.g. `["screening",
+    /// "transactions", "faced", "doc_extraction"]`. `screening` is the base
+    /// module and is always present in a well-formed licence.
+    public let modules: [String]
+
+    public var includesFaced: Bool { modules.contains("faced") || modules.contains("all") }
+    public var includesTransactions: Bool { modules.contains("transactions") || modules.contains("all") }
+    public var includesDocumentExtraction: Bool { modules.contains("doc_extraction") || modules.contains("all") }
+}
+
 /// One-time configuration for the RKN-Check SDK.
 ///
 /// A fintech configures `RKNCheckSDK` once at app launch with the URL of their
@@ -27,6 +45,33 @@ public enum RKNCheckSDK {
     /// Returns `true` once `configure(_:)` has been called.
     public static var isConfigured: Bool {
         RKNCheckRuntime.shared.configuration != nil
+    }
+
+    /// Entitlements decoded from the configured licence key, or `nil` when no
+    /// key is set or the key is malformed. Use this to hide flows the client
+    /// didn't buy (e.g. skip the biometric step when `includesFaced` is
+    /// false) instead of letting the user hit a server refusal mid-flow.
+    public static var entitlements: RKNCheckEntitlements? {
+        guard let key = RKNCheckRuntime.shared.configuration?.licenseKey else { return nil }
+        return decodeEntitlements(from: key)
+    }
+
+    /// Decode a licence key's payload without verifying its signature (the
+    /// backend does that). `RKN1.<base64url payload>.<signature>`.
+    static func decodeEntitlements(from key: String) -> RKNCheckEntitlements? {
+        let parts = key.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ".")
+        guard parts.count == 3, parts[0] == "RKN1" else { return nil }
+        var b64 = String(parts[1])
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        while b64.count % 4 != 0 { b64 += "=" }
+        guard
+            let data = Data(base64Encoded: b64),
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let client = object["client"] as? String,
+            let modules = object["modules"] as? [String]
+        else { return nil }
+        return RKNCheckEntitlements(client: client, modules: modules)
     }
 
     /// Verifies that the configured host is reachable and responds like a
